@@ -1,274 +1,137 @@
-# TODO
 """
-Create an incredible PyRQP library to do RQP using normal, log-normal, power
-function and non-parametric distributions
-
-Use solutions from link below (be modern)
-
-Create the repository and associated documentation
-
-Create notebooks as examples and make a blog post about it
-
-Show Carlos and Peter and discuss
-
-The next step after having a working library, apart from documentation etc.
-would be to implement the possibility to calculate decay at a specific reach
-length. For this we can use the velocity equation, the temperature adjusted
-decay equation, and of course the decay calculation.
+A Python implementation of the Environment Agency River Quality Planning
+software
 """
 
 import numpy as np
-
-# https://stackoverflow.com/questions/27727762/scipy-generate-random-variables-with-correlations
-
-# https://stackoverflow.com/questions/16024677/generate-correlated-data-in-python-3-3/16025584#16025584
-
-# https://realpython.com/numpy-scipy-pandas-correlation-python/
-
-# https://stats.stackexchange.com/questions/83172/generate-two-variables-with-precise-pre-specified-correlation
-
-# https://numpy.org/doc/stable/reference/random/generated/numpy.random.multivariate_normal.html
-
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.multivariate_normal.html
-
-# https://en.wikipedia.org/wiki/Power_transform
-
-# https://scikit-learn.org/stable/auto_examples/preprocessing/plot_map_data_to_normal.html
-
-# https://stackoverflow.com/questions/41109122/fitting-a-curve-to-a-power-law-distribution-with-curve-fit-does-not-work
-
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.fit.html
-
-# https://math.stackexchange.com/questions/2919631/finding-correlation-coefficient-from-covariance-matrix
-
-# https://www.investopedia.com/terms/c/covariance.asp#:~:text=Covariance%20is%20calculated%20by%20analyzing,standard%20deviation%20of%20each%20variable
-
-random_numbers =  # create variable with 21,000 random numbers
+import pandas as pd
+import rqp_utils as utils
 
 
-def calculate_perc_flow(random_numbers):
+class RiverQualityPlanner:
     """
+    The main class to call RQP
     """
-    # Read In WQ and flow data
+    # Class-level metadata properties
+    random_series_size = 10000
 
-    # Calculate correlation between the two
+    def __init__(self):
+        # Initialize empty data structures to store river flow and water quality data
+        self.river_flow_data = {}
+        self.river_water_quality_data = {}
+        self.discharge_flow_data = {}
+        self.discharge_water_quality_data = {}
+        self.correlation_data = {}
+        self.results = None
 
-    # Sort WQ data
+    def add_river_flow_data(self, flow_data):
+        # Add river flow data to the internal dict
+        lg_mean, lg_sd = utils.calculate_log_mean_sd_from_95pc(
+                flow_data["riv_flow_mean"], flow_data["riv_flow_95pc"]
+                )
+        flow_data["riv_flow_sd"] = lg_sd
+        self.river_flow_data.update(flow_data)
 
-    # Sort 'reference' flow data. ASK PETER FOR DETAILS
+    def add_river_water_quality_data(self, quality_data):
+        # Add river water quality data to the internal dict
+        self.river_water_quality_data.update(quality_data)
 
-    # Read in desired mean, SD and the calculated correlation
+    def add_discharge_flow_data(self, flow_data):
+        # Add discharge flow data to the internal dict
+        self.discharge_flow_data.update(flow_data)
 
-    # Calculate column with flow exceedance
+    def add_discharge_water_quality_data(self, quality_data):
+        # Add discharge water quality data to the internal dict
+        self.discharge_water_quality_data.update(quality_data)
 
-    # Calculate random deviate depending on equation needed (normal, log normal
-    # or non-parametric) and new flows
+    def add_correlation_data(self, correlation_data):
+        # Add correlation data to the internal dict
+        self.correlation_data.update(correlation_data)
 
-    # Log new mean, SD and correlation of broadcasted dataset
+    def calculate_downstream_concentration(self):
+        """
+        Implements the logic to predict downstream concentrations
+        """
+        # Correlation between river flow and quality
+        pts_1 = utils.calculate_multivariate_log_normal(
+                self.correlation_data["corr_riv_flow_wq"],
+                self.river_flow_data["riv_flow_mean"],
+                self.river_water_quality_data["riv_wq_mean"],
+                self.river_flow_data["riv_flow_sd"],
+                self.river_water_quality_data["riv_wq_sd"],
+                )
+        pts_1 = pd.DataFrame(
+                pts_1, columns=["River flow", "River quality"]).sort_values("River flow")
 
+        # Correlation between discharge flow and quality
+        pts_2 = utils.calculate_multivariate_log_normal(
+                self.correlation_data["corr_dis_flow_wq"],
+                self.discharge_flow_data["dis_flow_mean"],
+                self.discharge_water_quality_data["dis_wq_mean"],
+                self.discharge_flow_data["dis_flow_sd"],
+                self.discharge_water_quality_data["dis_wq_sd"],
+                )
+        pts_2 = pd.DataFrame(
+                pts_2, columns=["Discharge flow", "Discharge quality"]
+                ).sort_values("Discharge flow")
 
-def log_normal_random_deviate(Mean As Double, SD As Double,
-                              FixedDischargeDeviate As Double, DischargeCorr As
-                              Double, Seed As Long, NewValue As Double,
-                              FixedTempDeviate As Double, TempCorr As Double, Nj
-                              As Long):
-    """
-    Works out log normal random deviate based on specified mean and standard deviation (based on library code)
-    """
-    # Generate log normal random deviate
-    LGST = (Log(1 + (SD ^ 2) / (Mean ^ 2))) ^ 0.5
-    LGMean = Log(Mean / ((1 + ((SD ^ 2) / (Mean ^ 2))) ^ 0.5))
+        # Correlation between river flow and discharge flow
+        pts_3 = utils.calculate_multivariate_log_normal(
+                self.correlation_data["corr_riv_dis_flow"],
+                self.river_flow_data["riv_flow_mean"],
+                self.discharge_flow_data["dis_flow_mean"],
+                self.river_flow_data["riv_flow_sd"],
+                self.discharge_flow_data["dis_flow_sd"],
+                )
+        pts_3 = pd.DataFrame(pts_3, columns=["River flow", "Discharge flow"]).sort_values(
+                "River flow"
+                )
 
-    XRand = Nj
+        df = pd.concat(
+                [pts_1, pts_3["Discharge flow"], pts_2["Discharge quality"]],
+                axis=1,
+                ignore_index=True,
+                )
+        df.columns = ["River_flow", "River_quality", "Discharge_flow", "Discharge_quality"]
 
-    If XRand > 20000 Then
-    XRand = XRand - (Int((XRand / 20000)) * 20000)
-    End If
+        df = df.eval("Downstream_flow = River_flow + Discharge_flow")
 
-    idum = 200
+        df = df.eval(
+                "Downstream_wq = (River_flow * River_quality + Discharge_flow * Discharge_quality) / Downstream_flow"
+                )
 
-    If idum < 0 Then iset = 0
-    If iset = 0 Then
-      DoRndCounter = 0
-      Do
-        DoRndCounter = DoRndCounter + 1
-        V1 = 2 * RandomNumbers(XRand + DoRndCounter) - 1
-        V2 = 2 * RandomNumbers(XRand + DoRndCounter + 1) - 1
-        RSq = V1 ^ 2 + V2 ^ 2
-        If RSq > 1 Or RSq = 0 Then
-        Else
-          Exit Do
-        End If
-      Loop
+        self.results = df
 
-      fac = (-2 * Log(RSq) / RSq) ^ 0.5
-      gset = V1 * fac
-      gasdev = V2 * fac
-      iset = 1
-    Else
+    def calculate_discharge_permit(self):
+        """
+        Implements the logic to calculate the discharge permit
+        """
+        # TODO
 
-      gasdev = gset
-      iset = 0
-    End If
+        # Need to have initial foward calculation to have some results to set
+        # the initial correlation
 
-    b1 = TempCorr
-    b2 = (1 - b1 ^ 2) ^ 0.5
-    c1 = DischargeCorr
-    c2 = (TempCorr - b1 * c1) / b2
-    c3 = (1 - (c1 ^ 2) - (c2 ^ 2)) ^ 0.5
-    M = c1 * FixedDischargeDeviate + c2 * FixedTempDeviate + c3 * gasdev
-    value = (M * LGST) + LGMean
-    NewValue = Exp(value)
+        # Need to transform the data depending if the target is a SD or
+        # percentile concentration
 
-    return new_value
+        # Create random data for downstream quality that follows the desired
+        # mean and sd using downstream flow mean and sd and the initial
+        # correlation
 
+        # Resolve for discharge quality and calculate stats
 
-def NormalRandDeviate(Mean As Double, SD As Double, FixedDischargeDeviate As
-                      Double, DischargeCorr As Double, Seed As Long, NewValue As
-                      Double, FixedTempDeviate As Double, TempCorr As Double, Nj
-                      As Long):
-    """
-    Works out log normal random deviate based on specidied mean and standar deviation (based on library code)
-    """
+    def calculate_statistics(self):
+        """
+        Print results to screen
+        """
+        stats = self.results.describe().T
+        stats["90pc"] = self.results.quantile(0.90)
+        stats["95pc"] = self.results.quantile(0.95)
+        stats["99pc"] = self.results.quantile(0.99)
+        return stats
 
-    # Generate log normal random deviate
-    LGST = SD
-    LGMean = Mean
+    def export_results(self, filename):
+        # Export the results of predictions to a file
+        # TODO
+        pass
 
-    XRand = Nj
-
-    If XRand > 20000 Then
-    XRand = XRand - (Int((XRand / 20000)) * 20000)
-    End If
-
-    idum = 200
-
-    If idum < 0 Then iset = 0
-    If iset = 0 Then
-      DoRndCounter = 0
-      Do
-        DoRndCounter = DoRndCounter + 1
-        V1 = 2 * RandomNumbers(XRand + DoRndCounter) - 1
-        V2 = 2 * RandomNumbers(XRand + DoRndCounter + 1) - 1
-        RSq = V1 ^ 2 + V2 ^ 2
-        If RSq > 1 Or RSq = 0 Then
-        Else
-          Exit Do
-        End If
-      Loop
-
-      fac = (-2 * Log(RSq) / RSq) ^ 0.5
-      gset = V1 * fac
-      gasdev = V2 * fac
-      iset = 1
-    Else
-
-      gasdev = gset
-      iset = 0
-    End If
-
-    b1 = GlobalTempDischargeCorr
-    b2 = (1 - b1 ^ 2) ^ 0.5
-    c1 = DischargeCorr
-    c2 = (TempCorr - b1 * c1) / b2
-    c3 = (1 - (c1 ^ 2) - (c2 ^ 2)) ^ 0.5
-    M = c1 * FixedDischargeDeviate + c2 * FixedTempDeviate + c3 * gasdev
-    NewValue = (M * SD) + Mean
-
-    return new_value
-
-
-def dist(Mean As Double, SD As Double, value As Double, DisScale As Double, Corr
-         As Double, nx As Long):
-    """
-    Generates a value between 0 and 1 based on random deviate and correlation factors with another random number
-    """
-
-    Dim y0 As Double, y1 As Double, areaz As Double, filenum
-
-    Z = -3
-
-    XRand = Rnd
-    If XRand > 10000 Then XRand = XRand - (Int((XRand / 10000)) * 10000)
-
-    X = DisScale
-    step1 = 0.025
-    xx = 1 / ((2 * 3.14159265358979) ^ 0.5)
-    Counter = 0
-    cumarea = 0.001349967
-
-    Do
-      oldcumarea = cumarea
-      z1 = Z + step1
-      y0 = xx * Exp(-(Z ^ 2) / 2)
-      y1 = xx * Exp(-(z1 ^ 2) / 2)
-      areaz = step1 * ((y0 + y1) / 2)
-      cumarea = cumarea + areaz
-      Counter = Counter + 1
-      If Counter > 1000 Then Exit Do
-       If cumarea > X Then Exit Do
-      Z = Z + step1
-    Loop
-
-    If Counter <= 1000 Then interpolz = Z + ((X - oldcumarea) / (cumarea - oldcumarea)) * step1
-
-    If Corr <> 0 Then
-      zn = -3
-      xn = DisScale
-      step1n = 0.025
-      xxn = 1 / ((2 * 3.14159265358979) ^ 0.5)
-      Countern = 0
-      cumarean = 0.001349967
-
-      Do
-        oldcumarean = cumarean
-        z1n = zn + step1n
-        y0n = xxn * Exp(-(zn ^ 2) / 2)
-        y1n = xxn * Exp(-(z1n ^ 2) / 2)
-        areazn = step1n * ((y0n + y1n) / 2)
-         cumarean = cumarean + areazn
-        Countern = Countern + 1
-        If Countern > 1000 Then
-          Exit Do
-        End If
-
-        If cumarean > xn Then Exit Do
-        zn = zn + step1n
-      Loop
-
-      If Countern <= 1000 Then interpolzn = zn + ((xn - oldcumarean) / (cumarean - oldcumarean)) * step1n
-    End If
-
-    M = (interpolzn * Corr) + interpolz * ((1 - Corr ^ 2) ^ 0.5)
-
-    value = (M * SD) + Mean
-
-    return value
-
-
-def NewRndValue(UPMDeviate As Double, NewRnd As Double):
-    """
-    Generates a value between 0 and 1 based on random deviate
-    """
-    Z = -3
-    step1 = 0.01
-    xx = 1 / ((2 * 3.14159265358979) ^ 0.5)
-    Counter = 0
-    cumarea = 0.001349967
-
-    Do
-        oldcumarea = cumarea
-        z1 = Z + step1
-        y0 = xx * Exp(-(Z ^ 2) / 2)
-        y1 = xx * Exp(-(z1 ^ 2) / 2)
-        areaz = step1 * ((y0 + y1) / 2)
-        cumarea = cumarea + areaz
-        Counter = Counter + 1
-        If Counter > 1000 Then Exit Do
-        If z1 > UPMDeviate Then Exit Do
-        Z = Z + step1
-    Loop
-
-    NewRnd = cumarea
-
-    return new_random
