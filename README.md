@@ -44,7 +44,11 @@ This package is available for installation using [PyPI](https://pypi.org/project
 
 However, the pip version may lag behind the release version. For most users it is recommended that they download the package directly from GitHub.
 
-[commment]: <TODO Prepare a blog post and use it for citation purposes>
+## Citation
+
+Please consider citing this website when using PyRQP:
+
+> Juan-Garcia, P. (2023, October 17). PauJuan/PyRQP Open source River Quality Planning software written in Python. GitHub. https://github.com/PauJuan/PyRQP
 
 ## License
 

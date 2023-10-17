@@ -8,12 +8,12 @@ version = "0.0.1"
 authors = [
   { name="Pau Juan-Garcia", email="Pau.JuanGarcia@atkinsrealis.com" },
 ]
-description = "A Python version of the Environment Agency's River Quality Planning (RQP) software"
+description = "An open source version of the Environment Agency's River Quality Planning software written in Python. It aims to be transparent, extendable and easy to automate."
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3",
     "Operating System :: OS Independent",
 ]
 
