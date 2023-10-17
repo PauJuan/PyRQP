@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pyrqp"
 version = "0.0.1"
 authors = [
-  { name="Pau Juan-Garcia", email="Pau.JuanGarcia@atkinsglobal.com" },
+  { name="Pau Juan-Garcia", email="Pau.JuanGarcia@atkinsrealis.com" },
 ]
 description = "A Python version of the Environment Agency's River Quality Planning (RQP) software"
 readme = "README.md"
