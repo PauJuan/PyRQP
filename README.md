@@ -2,7 +2,7 @@
 
 An open source version of the Environment Agency's River Quality Planning (RQP) software written in Python. It aims to be transparent, extendable and easy to automate.
 
-[comment]: Documentation
+[comment]: <TODO Add link to documentation>
 
 ## RQP
 
@@ -34,15 +34,21 @@ By applying a simple mass balance, the downstream flow and concentration is calc
 
 Please check the notebook folder for examples of how to use it.
 
+- [Proof of concept](https://github.com/PauJuan/PyRQP/blob/main/notebooks/rqp.ipynb)
+
 ## Installation
 
-This package is available for installation using [pip](https://pypi.org/project/PyRQP/):
+This package is available for installation using [PyPI](https://pypi.org/project/PyRQP/):
 
     pip install PyRQP
 
-However, the pip version may lag behind the last release version. For most users it is recommended that they download the package directly from GitHub.
+However, the pip version may lag behind the release version. For most users it is recommended that they download the package directly from GitHub.
+
+[commment]: <TODO Prepare a blog post and use it for citation purposes>
 
 ## License
+
+Copyright (C) 2023 [Pau Juan-Garcia](https://paujuan.github.io/)
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
