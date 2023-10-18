@@ -34,7 +34,7 @@ By applying a simple mass balance, the downstream flow and concentration is calc
 
 Please check the notebook folder for examples of how to use it.
 
-- [Proof of concept](https://github.com/PauJuan/PyRQP/blob/main/notebooks/rqp.ipynb)
+- [Proof of concept](https://github.com/PauJuan/PyRQP/blob/main/notebooks/pyrqp_poc.ipynb)
 
 ## Installation
 
