@@ -5,7 +5,7 @@ software
 
 import numpy as np
 import pandas as pd
-import rqp_utils as utils
+import utils
 
 
 class RiverQualityPlanner:
@@ -13,125 +13,125 @@ class RiverQualityPlanner:
     The main class to call RQP
     """
     # Class-level metadata properties
-    random_series_size = 10000
+    random_series_size = 100000
+    random_series_seed = 42
+    np.random.seed(42)
+
+    # Target properties
+    target_value = None
+    target_pc = None
 
     def __init__(self):
         # Initialize empty data structures to store river flow and water quality data
-        self.river_flow_data = {}
-        self.river_water_quality_data = {}
-        self.discharge_flow_data = {}
-        self.discharge_water_quality_data = {}
-        self.correlation_data = {}
+        self.rqp_data = {}
         self.results = None
+        self.stats = None
 
-    def add_river_flow_data(self, flow_data):
+    def set_random_params(self, size=100000, seed=42):
+        # Set bespoke values for random parameters
+        self.random_series_seed = seed
+        self.random_series_size = size
+        np.random.seed(self.random_series_seed)
+
+    def set_target(self, value, percentile):
+        # Set target for back calculation
+        self.target_value = value
+        self.target_pc = percentile
+
+    def add_rqp_data(self, rqp_data):
         # Add river flow data to the internal dict
         lg_mean, lg_sd = utils.calculate_log_mean_sd_from_95pc(
-                flow_data["riv_flow_mean"], flow_data["riv_flow_95pc"]
+                rqp_data["riv_flow_mean"], rqp_data["riv_flow_95pc"]
                 )
-        flow_data["riv_flow_sd"] = lg_sd
-        self.river_flow_data.update(flow_data)
-
-    def add_river_water_quality_data(self, quality_data):
-        # Add river water quality data to the internal dict
-        self.river_water_quality_data.update(quality_data)
-
-    def add_discharge_flow_data(self, flow_data):
-        # Add discharge flow data to the internal dict
-        self.discharge_flow_data.update(flow_data)
-
-    def add_discharge_water_quality_data(self, quality_data):
-        # Add discharge water quality data to the internal dict
-        self.discharge_water_quality_data.update(quality_data)
-
-    def add_correlation_data(self, correlation_data):
-        # Add correlation data to the internal dict
-        self.correlation_data.update(correlation_data)
+        rqp_data["riv_flow_sd"] = lg_sd
+        self.rqp_data.update(rqp_data)
 
     def calculate_downstream_concentration(self):
         """
         Implements the logic to predict downstream concentrations
         """
-        # Correlation between river flow and quality
-        pts_1 = utils.calculate_multivariate_log_normal(
-                self.correlation_data["corr_riv_flow_wq"],
-                self.river_flow_data["riv_flow_mean"],
-                self.river_water_quality_data["riv_wq_mean"],
-                self.river_flow_data["riv_flow_sd"],
-                self.river_water_quality_data["riv_wq_sd"],
-                )
-        pts_1 = pd.DataFrame(
-                pts_1, columns=["River flow", "River quality"]).sort_values("River flow")
-
-        # Correlation between discharge flow and quality
-        pts_2 = utils.calculate_multivariate_log_normal(
-                self.correlation_data["corr_dis_flow_wq"],
-                self.discharge_flow_data["dis_flow_mean"],
-                self.discharge_water_quality_data["dis_wq_mean"],
-                self.discharge_flow_data["dis_flow_sd"],
-                self.discharge_water_quality_data["dis_wq_sd"],
-                )
-        pts_2 = pd.DataFrame(
-                pts_2, columns=["Discharge flow", "Discharge quality"]
-                ).sort_values("Discharge flow")
-
-        # Correlation between river flow and discharge flow
-        pts_3 = utils.calculate_multivariate_log_normal(
-                self.correlation_data["corr_riv_dis_flow"],
-                self.river_flow_data["riv_flow_mean"],
-                self.discharge_flow_data["dis_flow_mean"],
-                self.river_flow_data["riv_flow_sd"],
-                self.discharge_flow_data["dis_flow_sd"],
-                )
-        pts_3 = pd.DataFrame(pts_3, columns=["River flow", "Discharge flow"]).sort_values(
-                "River flow"
+        # Run main function to generate random data
+        df = utils.calculate_multivariate_log_normal(
+                # Flow
+                mean1=self.rqp_data["riv_flow_mean"],
+                std1=self.rqp_data["riv_flow_sd"],
+                mean2=self.rqp_data["dis_flow_mean"],
+                std2=self.rqp_data["dis_flow_sd"],
+                # Quality
+                mean3=self.rqp_data["riv_wq_mean"],
+                std3=self.rqp_data["riv_wq_sd"],
+                mean4=self.rqp_data["dis_wq_mean"],
+                std4=self.rqp_data["dis_wq_sd"],
+                # Correlation
+                corr1_2=self.rqp_data["corr_riv_dis_flow"],
+                corr1_3=self.rqp_data["corr_riv_flow_wq"],
+                corr2_4=self.rqp_data["corr_dis_flow_wq"],
+                random_size=self.random_series_size
                 )
 
-        df = pd.concat(
-                [pts_1, pts_3["Discharge flow"], pts_2["Discharge quality"]],
-                axis=1,
-                ignore_index=True,
-                )
-        df.columns = ["River_flow", "River_quality", "Discharge_flow", "Discharge_quality"]
-
-        df = df.eval("Downstream_flow = River_flow + Discharge_flow")
-
-        df = df.eval(
-                "Downstream_wq = (River_flow * River_quality + Discharge_flow * Discharge_quality) / Downstream_flow"
-                )
+        # Calculate downstream flow and quality
+        df = df.eval("ds_flow = riv_flow + dis_flow")
+        df = df.eval("ds_qual = (riv_flow * riv_qual + dis_flow * dis_qual) / ds_flow")
 
         self.results = df
+        self.update_stats()
 
     def calculate_discharge_permit(self):
         """
         Implements the logic to calculate the discharge permit
         """
-        # TODO
+        df = self.results
+        target = self.target_value
+        percentile = self.target_pc
 
-        # Need to have initial foward calculation to have some results to set
-        # the initial correlation
+        # Calculate adjustment factors and scale distribution
+        df["ds_qual_target"] = df["ds_qual"]
+        scale = target / df["ds_qual"].quantile(percentile)
 
-        # Need to transform the data depending if the target is a SD or
-        # percentile concentration
+        while not (0.9999 <= scale <= 1.0001):
 
-        # Create random data for downstream quality that follows the desired
-        # mean and sd using downstream flow mean and sd and the initial
-        # correlation
+            # Scale target distribution
+            df["ds_qual_target"] = df["ds_qual_target"] * scale
 
-        # Resolve for discharge quality and calculate stats
+            # Recalculate discharge quality target
+            df = df.eval("dis_qual_target = (ds_flow * ds_qual_target - riv_flow * riv_qual) / dis_flow")
 
-    def calculate_statistics(self):
+            # Recalculate discharge quality keeping CoV
+            adj_factor = df["dis_qual_target"].mean() / df["dis_qual"].mean()
+            df["dis_qual_target"] = df["dis_qual"] * adj_factor
+
+            # Recalculate downstream water quality and check scale
+            df = df.eval("ds_qual_target = (riv_flow * riv_qual + dis_flow * dis_qual_target) / ds_flow")
+            scale = target / df["ds_qual_target"].quantile(percentile)
+
+        # Overwrite results
+        self.results = df
+        self.update_stats()
+
+    def update_stats(self):
         """
-        Print results to screen
+        Calculate summary statistics
         """
-        stats = self.results.describe().T
-        stats["90pc"] = self.results.quantile(0.90)
-        stats["95pc"] = self.results.quantile(0.95)
-        stats["99pc"] = self.results.quantile(0.99)
-        return stats
+        df = self.results
+        stats = df.agg(["mean", "std"]).T
+        stats["90pc"] = df.quantile(0.90)
+        stats["95pc"] = df.quantile(0.95)
+        stats["99pc"] = df.quantile(0.99)
+        stats["99.5pc"] = df.quantile(0.995)
+        stats["cov"] = stats["std"] / stats["mean"]
+        self.stats = stats
+
+    def get_stats(self):
+        """
+        Commodity function to retrieve statistics
+        """
+        df = self.stats
+        return df
+
 
     def export_results(self, filename):
-        # Export the results of predictions to a file
-        # TODO
-        pass
-
+        """
+        Commodity function to export statistics to excel
+        """
+        df = self.stats
+        df.to_excel(filename)

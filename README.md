@@ -34,7 +34,8 @@ By applying a simple mass balance, the downstream flow and concentration is calc
 
 Please check the notebook folder for examples of how to use it.
 
-- [Proof of concept](https://github.com/PauJuan/PyRQP/blob/main/notebooks/pyrqp_poc.ipynb)
+- [Proof of concept](https://github.com/PauJuan/PyRQP/blob/main/notebooks/pyrqp_poc.ipynb). A simple notebook that contains the bare bones of the methodology to show how RQP works
+- [Simple example](https://github.com/PauJuan/PyRQP/blob/main/notebooks/rqp_simple_example.ipynb). A simple example of using the PyRQP library for one case study (forward and backward calculation)
 
 ## Installation
 
