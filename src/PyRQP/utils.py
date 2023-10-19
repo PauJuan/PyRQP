@@ -37,8 +37,9 @@ def calculate_covariance(corr, std_1, std_2):
 
 
 def calculate_multivariate_log_normal(
-        mean1, std1, mean2, std2, mean3, std3, mean4, std4, corr1_2, corr1_3,
-        corr2_4, random_size
+        mean1, std1, mean2, std2, mean3, std3, mean4, std4,
+        corr1_2, corr1_3, corr2_4,
+        random_size
         ):
     """
     The main equation in RQP to generate the lognormal
