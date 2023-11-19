@@ -14,11 +14,17 @@ There are two key points underlying the methodology of the RQP tool:
 
 ### Correlation
 
-RQP generates four sets of random correlated data based on each parameter's distributions, which are generally considered to be lognormal. The parameters are: river flow, discharge flow, river concentration and discharge concentration. The following is a graphical representation of what this looks like for river flow and quality. The correlation between river flow and discharge flow is typically 0.6.
+RQP generates four sets of random correlated data based on each parameter's distributions, which are generally considered to be lognormal. The parameters are: river flow, discharge flow, river concentration and discharge concentration. The following is a graphical representation of what this looks like for river flow and discharge flow. The correlation between this two variables is typically 0.6.
 
-![LogNormal](https://github.com/PauJuan/PyRQP/blob/main/docs/img/Log_normal.png?raw=true)
+![flow_correlation](https://github.com/PauJuan/PyRQP/blob/main/docs/img/flow_correlation.png?raw=true)
 
-*Example of river flow and quality correlation of 0.6 for two lognormal distributions. River flow mean and std are 20 and 4.5; river quality mean and std are 4 and 0.9. These values are approximate*
+*Example of river flow and discharge flow correlation of 0.6 for two lognormal distributions. River flow mean and std are 20 and 4.5; discharge flow mean and std are 4 and 0.9. These values are approximate*
+
+Complementary, the correlation between river flow and quality is typically -0.3; an example follows.
+
+![flow_wq_correlation](https://github.com/PauJuan/PyRQP/blob/main/docs/img/flow_correlation.png?raw=true)
+
+*Example of river flow and quality correlation of -0.3 for two lognormal distributions. 
 
 ### Monte Carlo
 
