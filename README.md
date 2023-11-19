@@ -22,9 +22,9 @@ RQP generates four sets of random correlated data based on each parameter's dist
 
 Complementary, the correlation between river flow and quality is typically -0.3; an example follows.
 
-![flow_wq_correlation](https://github.com/PauJuan/PyRQP/blob/main/docs/img/flow_correlation.png?raw=true)
+![flow_wq_correlation](https://github.com/PauJuan/PyRQP/blob/main/docs/img/flow_wq_correlation.png?raw=true)
 
-*Example of river flow and quality correlation of -0.3 for two lognormal distributions. 
+*Example of river flow and quality correlation of -0.3 for two lognormal distributions.*
 
 ### Monte Carlo
 
